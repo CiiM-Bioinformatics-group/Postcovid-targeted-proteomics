@@ -7,7 +7,7 @@ library(ggsci)
 library(ggpubr)
 
 rm(list = ls())
-setwd('/Users/martijnzoodsma/Documents/PhD/corona/final')
+setwd("/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/")
 load('data/data.RData')
 
 # PCA on the Radboud and MHH cohorts combined

@@ -15,7 +15,7 @@ library(pheatmap)
 library(RColorBrewer)
 
 rm(list = ls())
-setwd('/Users/martijnzoodsma/Documents/PhD/corona/final/')
+setwd("/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/")
 load('data/data.RData')
 
 # prepare data. Take only common proteins and the first timepoint for Nijmegen cohort

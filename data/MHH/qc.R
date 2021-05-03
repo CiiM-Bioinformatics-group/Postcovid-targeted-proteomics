@@ -1,7 +1,7 @@
 rm(list=ls())
 dev.off()
 
-setwd("/Users/martijnzoodsma/Documents/PhD/corona/final/")
+setwd("/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/")
 
 suppressPackageStartupMessages(library(OlinkAnalyze))
 suppressPackageStartupMessages(library(openxlsx))

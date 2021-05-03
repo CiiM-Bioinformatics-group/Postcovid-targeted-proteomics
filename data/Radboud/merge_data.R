@@ -65,6 +65,6 @@ pl3 <- pl3[total.common]
 panel_cardiovascular <- rbind(pl1, pl2, pl3)
 
 # output
-write.xlsx(x = panel_inflammation, file='/Users/martijnzoodsma/Documents/PhD/corona/final/data/Radboud/merged_data/inflammation.xlsx', rowNames=T)
-write.xlsx(x = panel_cardiovascular, file = '/Users/martijnzoodsma/Documents/PhD/corona/final/data/Radboud/merged_data/cardiovascular.xlsx', rowNames=T)
-write.xlsx(x = panel_cardiometabolic, file = '/Users/martijnzoodsma/Documents/PhD/corona/final/data/Radboud/merged_data/cardiometabolic.xlsx', rowNames=T)
+write.xlsx(x = panel_inflammation, file='/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/data/Radboud/merged_data/inflammation.xlsx', rowNames=T)
+write.xlsx(x = panel_cardiovascular, file = '/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/data/Radboud/merged_data/cardiovascular.xlsx', rowNames=T)
+write.xlsx(x = panel_cardiometabolic, file = '/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/data/Radboud/merged_data/cardiometabolic.xlsx', rowNames=T)

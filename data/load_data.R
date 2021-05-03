@@ -10,7 +10,7 @@ suppressPackageStartupMessages(library(reshape2))
 suppressPackageStartupMessages(library(magrittr))
 
 # Set to the correct directory
-setwd('/Users/martijnzoodsma/Documents/PhD/corona/final')
+setwd('/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/')
 conv <- read.xlsx('data/convert_olink_names.xlsx')
 
 # Load the data per cohort. 

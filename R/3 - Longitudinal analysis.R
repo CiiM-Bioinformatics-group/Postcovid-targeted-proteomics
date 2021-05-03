@@ -11,7 +11,7 @@ library(ggpubr)
 library(reshape2)
 library(limma)
 
-setwd('/Users/martijnzoodsma/Documents/PhD/corona/data/Postcovid-Olink/')
+setwd("/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/")
 load('data/data.RData')
 
 PVALUE_CUTOFF <- 0.05
