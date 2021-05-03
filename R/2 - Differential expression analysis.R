@@ -282,3 +282,5 @@ pdf('output/heatmap_postcovid_recovered.pdf', width = 20, height = 12)
 make.heatmap(recover.postcovid, color = cols, lim = 1.5)
 dev.off()
 
+
+# All DE genes
