@@ -184,6 +184,8 @@ biomarkers <- list(
   'postcovid neurology' = healthy_vs_postcovid %>% filter(significance == TRUE) %>% filter(Olink.panel == 'Olink NEUROLOGY') %>% pull(OlinkID)
 )
 
+write.xlsx('output/biomarkers.xlsx', x = biomarkers)
+
 
 length(biomarkers$ICU)
 length(biomarkers$nonICU)
