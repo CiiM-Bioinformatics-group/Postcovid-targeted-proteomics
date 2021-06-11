@@ -1,7 +1,7 @@
 # Postcovid targeted proteomics
 
 Author: Martijn Zoodsma, Helmholtz Centre for Infection Research.  
-Principal Investigator: Prof. Dr. Yang Li.
+Principal Investigator: Prof. Dr. Yang Li.  
 Contact: martijn.zoodsma@helmholtz-hzi.de
 
 Contains all data and scripts used in the targeted proteomics post-COVID-19 study (Doi: link). In short, we performed targeted proteomics on three separate cohorts consisting of hospitalized COVID-19 patients, convalescent COVID-19 patients and healthy individuals. 
