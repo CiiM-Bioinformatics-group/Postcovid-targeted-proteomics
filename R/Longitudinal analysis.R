@@ -49,8 +49,9 @@ for (biomarker in biomarkers) {
   # Look for the rows where the NA count is too high. These are patients that switched ICU - nonICU and will have 2/3 timepoints in each.
   # We dont want to do imputation for these. Instead, choose the 
   na_count <- apply(melt.sub2, 1, function(x) sum(is.na(x)))
-  melt.sub3 <- melt.sub2[!na_count >= 2, ]
   
+  melt.sub3 <- melt.sub2[!na_count >= 2, ]
+
   melt.sub3[is.na(melt.sub3)] <- means[biomarker]    
   long <- melt(melt.sub3, variable.name = 'time', id.vars = c('sampleID', 'condition'))
   

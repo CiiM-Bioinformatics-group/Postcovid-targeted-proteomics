@@ -62,12 +62,28 @@ pcs <- data.frame(pca$x, row.names = rownames(radboud))
 
 pcs <- cbind(pcs, annot.radboud)
 
-# Color by sampleID
+# Identify the samples that go down from T1 to T2 and flip them
+flip <- c()
+for (sample in unique(pcs$sampleID)) {
+  
+  sub <- pcs %>% filter(sampleID == sample)
+  
+  # Is T2 smaller than T1 in PC1?
+  T1 <- sub %>% filter(time == 'W1T1') %>% pull(PC1)
+  T2 <- sub %>% filter(time == 'W1T2') %>% pull(PC1)
+  
+  if (T1 > T2) { flip <- c(flip, sample) }
+}
 
+# Flip the samples that need flipping
+pcs[which(pcs$sampleID %in% flip), 'PC1'] <- -1 * pcs[which(pcs$sampleID %in% flip), 'PC1']
+
+# Color by sampleID
 pdf('output/anova_pca.pdf', width = 5, height = 3)
 ggplot() +
   geom_point(data = pcs, aes(x = time, y = PC1, color = sampleID)) +
   geom_line(data=pcs, aes(x = time,y = PC1, group = sampleID, color = sampleID)) +
+  theme_classic() +
   theme(legend.position = 'none', 
         axis.text.x = element_text(hjust = 1, vjust = 1, angle = 45)) +
   scale_x_discrete(expand = c(0.05, 0.05)) +
@@ -78,6 +94,7 @@ dev.off()
 ggplot() +
   geom_point(data = pcs, aes(x = time, y = PC1, color = condition)) +
   geom_line(data=pcs, aes(x = time,y = PC1, group = sampleID, color = condition)) +
+  theme_classic() +
   theme(legend.position = 'none') +
   scale_x_discrete(expand = c(0.05, 0.05))
 

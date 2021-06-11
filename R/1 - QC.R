@@ -7,40 +7,73 @@ library(ggsci)
 library(ggpubr)
 
 rm(list = ls())
-setwd("/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/")
 load('data/data.RData')
 
-# PCA on the Radboud and MHH cohorts combined
-annot.radboud %<>% filter(time == 'W1T1')
+# PCA on each of the cohorts separately
+# MHH
+mhh <- na.omit(mhh)
+annot.mhh <- annot.mhh[which(rownames(annot.mhh) %in% rownames(mhh)), ]
 
-annot <- rbind(annot.mhh %>% select(condition, cohort), 
-               annot.radboud %>% select(condition, cohort))
+all(rownames(mhh) == rownames(annot.mhh))
 
-df <- rbind(mhh %>% select(intersect(colnames(mhh), colnames(radboud))), 
-            radboud %>% select(intersect(colnames(mhh), colnames(radboud))))
-
-df <- na.omit(df)
-annot <- na.omit(annot)
-
-annot %<>% filter(rownames(annot) %in% intersect(rownames(df), rownames(annot)))
-df %<>% filter(rownames(df) %in% intersect(rownames(df), rownames(annot)))
-
-pca <- prcomp(x = df, center = T, scale. = T)
+pca <- prcomp(x = mhh, center = T, scale. = T)
 pcs <- data.frame(pca$x)
 
-annot$condition <- factor(annot$condition, levels = c('ICU', 'non-ICU', 'postcovid', 'healthy'))
-pdf('output/pca.pdf', width = 5, height = 5)
+pdf('output/pca_MHH_cohort.pdf', width = 5, height = 3)
 ggplot() +
-  geom_point(data = pcs, aes(PC1, PC2, color = annot$condition)) +
+  geom_point(data = pcs, aes(PC1, PC2, color = annot.mhh$condition)) +
   theme_classic() +
   scale_color_nejm() +
-  labs(x = 'PC1 [27.74%]', y = 'PC2 [11.66%]', color='Condition')
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = 'PC1', y = 'PC2', color='Condition', title = 'MHH cohort')
 dev.off()
 
-pcs[which(pcs$PC2 > 20), ]
+# Radboud. Only T1
+radboud <- na.omit(radboud)
+annot.radboud %<>% filter(time == 'W1T1')
+annot.radboud <- annot.radboud[which(rownames(annot.radboud) %in% rownames(radboud)), ]
+radboud <- radboud[which(rownames(radboud) %in% rownames(annot.radboud)), ]
+
+all(rownames(radboud) == rownames(annot.radboud))
+
+pca <- prcomp(x = radboud, center = T, scale. = T)
+pcs <- data.frame(pca$x)
+
+pdf('output/pca_radboud_cohort.pdf', width = 4, height = 3)
+ggplot() +
+  geom_point(data = pcs, aes(PC1, PC2, color = annot.radboud$condition)) +
+  theme_classic() +
+  scale_color_nejm() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = 'PC1', y = 'PC2', color='Condition', title = 'Radboud cohort')
+dev.off()
 
 
-## Remove two samples because outliers in the first plot
+# Breda
+breda <- na.omit(breda)
+annot.breda <- na.omit(annot.breda)
+annot.breda %<>% filter(timepoint == 'T1')
+breda <- breda[which(rownames(breda) %in% rownames(annot.breda)), ]
+
+all(rownames(breda) == rownames(annot.breda))
+
+pca <- prcomp(x = breda, center = T, scale. = T)
+pcs <- data.frame(pca$x)
+
+pdf('output/pca_breda_cohort.pdf', width = 4, height = 3)
+ggplot() +
+  geom_point(data = pcs, aes(PC1, PC2, color = annot.breda$condition)) +
+  theme_classic() +
+  scale_color_nejm() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = 'PC1', y = 'PC2', color='Condition', title = 'Breda cohort')
+dev.off()
+
+
+## Remove apparent outliers
+# Radboud: 1 sample
+# MHH: 1 sample
+# Breda: 0 sample
 rm(list = ls())
 load('data/data.RData')
 rem <- c('TK_41', 'RUMC_0112')
@@ -56,7 +89,44 @@ save.image(file = 'data/data.RData')
 
 
 
-# PCA separated by the panels
+
+# PCA on the inflammatory panel across all three cohorts
+rm(list = ls())
+load('data/data.RData')
+
+breda <- breda[, which(colnames(breda) %in% colnames(radboud)), ]
+
+
+mhh %<>% select(all_of(colnames(breda)))
+radboud %<>% select(all_of(colnames(breda)))
+
+df <- rbind(mhh, radboud, breda) %>% na.omit()
+annot <- rbind(annot.mhh %>% select(cohort, condition), 
+               annot.radboud %>% filter(time == 'W1T1') %>% select(cohort, condition), 
+               annot.breda %>% filter(timepoint == 'T1') %>% select(cohort, condition))
+
+annot <- na.omit(annot)
+df <- df[which(rownames(df) %in% rownames(annot)), ]
+annot <- annot[which(rownames(annot) %in% rownames(df)), ]
+
+all(rownames(df) == rownames(annot))
+
+pca <- prcomp(x = df, center = T, scale. = T)
+pcs <- data.frame(pca$x)
+
+pdf('output/pca_inf_panel.pdf', width = 4, height = 3)
+ggplot() +
+  geom_point(data = pcs, aes(PC1, PC2, color = annot$condition)) +
+  theme_classic() +
+  scale_color_nejm() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = 'PC1', y = 'PC2', color='Condition', title = 'Inflammation panel\nBreda + MHH + Nijmegen')
+dev.off()
+
+
+
+
+# PCA separated by the panels. Only for Radboud and MHH cohorts
 # Inflammation panel
 rm(list = ls())
 load('data/data.RData')
@@ -85,7 +155,7 @@ plot.inf <- ggplot() +
   geom_point(data = data.frame(pca$x), aes(PC1, PC2, color = annot$condition)) +
   theme_classic() +
   scale_color_nejm() +
-  labs(x = 'PC1 [33.23%]', y = 'PC2 [13.73%]', color='Condition', title = 'Inflammation panel') +
+  labs(x = 'PC1', y = 'PC2', color='Condition', title = 'Inflammation panel') +
   theme(plot.title = element_text(hjust = 0.5))
 
 # Cardiometabolic panel
@@ -99,7 +169,7 @@ plot.cm <- ggplot() +
   geom_point(data = data.frame(pca$x), aes(PC1, PC2, color = annot$condition)) +
   theme_classic() +
   scale_color_nejm() +
-  labs(x = 'PC1 [27.42%]', y = 'PC2 [20.52%]', color='Condition', title = 'Cardiometabolic panel') +
+  labs(x = 'PC1', y = 'PC2', color='Condition', title = 'Cardiometabolic panel') +
   theme(plot.title = element_text(hjust = 0.5))
 
 # Cardiovascular II panel
@@ -113,7 +183,7 @@ plot.cv <- ggplot() +
   geom_point(data = data.frame(pca$x), aes(PC1, PC2, color = annot$condition)) +
   theme_classic() +
   scale_color_nejm() +
-  labs(x = 'PC1 [29.13%]', y = 'PC2 [12.42%]', color='Condition', title = 'Cardiovascular panel') +
+  labs(x = 'PC1', y = 'PC2', color='Condition', title = 'Cardiovascular panel') +
   theme(plot.title = element_text(hjust = 0.5))
 
 

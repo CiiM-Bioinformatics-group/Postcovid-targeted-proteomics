@@ -1,16 +1,14 @@
 # Load data, load annotation.
 # merge and clean. Save as .RData object for further use
+# No need to set the working dir as we use the .RProj to keep track of relative paths
 
 rm(list = ls())
-dev.off()
 
 suppressPackageStartupMessages(library(openxlsx))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(reshape2))
 suppressPackageStartupMessages(library(magrittr))
 
-# Set to the correct directory
-setwd('/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/')
 conv <- read.xlsx('data/convert_olink_names.xlsx')
 
 # Load the data per cohort. 
