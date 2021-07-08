@@ -236,6 +236,7 @@ postcovid.down <- healthy_vs_postcovid_filtered %>% filter(significance == TRUE)
 res.up <- list('ICU' = ICU.up, 'non-ICU' = nonICU.up, 'postcovid' = postcovid.up)
 res.down <- list('ICU' = ICU.down, 'non-ICU' = nonICU.down, 'postcovid' = postcovid.down)
 
+# devtools::install_github('MZoodsma/ggVennDiagram')
 pdf('output/venn_biomarkers_up.pdf', width = 4, height = 4)
 ggVennDiagram(x = res.up, 
               label = 'count', 

@@ -1,8 +1,6 @@
 rm(list=ls())
 dev.off()
 
-setwd("/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/")
-
 suppressPackageStartupMessages(library(OlinkAnalyze))
 suppressPackageStartupMessages(library(openxlsx))
 suppressPackageStartupMessages(library(reshape2))
@@ -17,6 +15,12 @@ cm.df <- read_NPX(filename = 'data/MHH/raw/MHH cohort analysis_NPX_CardioMetabol
 cvd.df <- read_NPX(filename = 'data/MHH/raw/MHH cohort analysis_NPX_CVD II_v1.xlsx')
 inf.df <- read_NPX(filename = 'data/MHH/raw/MHH cohort analysis_NPX_INF_v1.xlsx')
 neu.df <- read_NPX(filename = 'data/MHH/raw/MHH cohort analysis_NPX_Neur_v1.xlsx')
+
+cm.df %>% pull(QC_Warning) %>% table() / 92
+cvd.df %>% pull(QC_Warning) %>% table() / 92
+inf.df %>% pull(QC_Warning) %>% table() / 92
+neu.df %>% pull(QC_Warning) %>% table() / 92
+
 
 cm.df %<>%
   mutate(MissingFreq = as.numeric(MissingFreq)) %>% 

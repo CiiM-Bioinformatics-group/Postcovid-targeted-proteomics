@@ -18,7 +18,7 @@ theme_set(theme_classic() + theme(text = element_text(size = 12)))
 # annot radboud unique patients
 annot.radboud %<>% filter(time == 'W1T1')
 
-df <- rbind(annot.mhh %>% select(age, gender, condition), 
+annot <- rbind(annot.mhh %>% arrange(time.convalescence) %>% select(age, gender, condition), 
             annot.radboud %>% select(age, gender, condition))
 
 # Heatmap over Radboud and MHH cohorts
@@ -28,11 +28,6 @@ annot.radboud %<>% filter(time == 'W1T1')
 df <- rbind(
   mhh %>% select(all_of(common)), 
   radboud %>% select(all_of(common))
-)
-
-annot <- rbind(
-  annot.mhh %>% select(all_of(c('age', 'gender', 'condition'))), 
-  annot.radboud %>% select(all_of(c('age', 'gender', 'condition')))
 )
 
 df <- na.omit(df)
@@ -87,12 +82,12 @@ DE <- unique(c(
 df %<>% select(all_of(DE))
 
 pdf('output/heatmap_figure_1.pdf', width = 8, height = 4)
-ph <- pheatmap(mat = t(df), 
-         scale = 'row', 
+ph <- pheatmap::pheatmap(mat = t(df), 
+         scale = 'row',
          show_colnames = F, 
          cluster_cols = F,
          annotation_col = annot %>% select(condition), 
-         breaks = seq(-2, 2, length.out = 100), 
+         breaks = seq(-2, 2, length.out = 100),
          show_rownames = F, 
          annotation_colors = list(condition = cols), 
          annotation_names_col = F, 
@@ -100,6 +95,7 @@ ph <- pheatmap(mat = t(df),
          color = x, 
          cutree_rows = 4)
 dev.off()
+
 
 # Export excel sheet with clusters
 prots <- sort(cutree(ph$tree_row, k=4))

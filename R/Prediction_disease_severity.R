@@ -1,5 +1,5 @@
 rm(list = ls())
-dev.off()
+try(dev.off())
 
 library(pROC)
 library(caret)
@@ -10,8 +10,8 @@ library(magrittr)
 # prediction for the separation between ICU and non-ICU
 # Training: Breda cohort
 # Test: Radboud cohort
-setwd('/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/')
-load('data/data.RData')
+
+load('data.RData')
 
 common <- intersect(colnames(breda), colnames(radboud))
 breda %<>% select(all_of(common)) %>% na.omit()
@@ -56,23 +56,23 @@ validation_y <- factor(annot.radboud$condition, levels = c('ICU', 'nonICU'))
 ## Make the model
 # Train 100 times. Each time, save the coefficients so we can see which proteins were set to zero and which are included in the model.
 
-n <- 1
+n <- 100
 res <- matrix(NA, nrow = n, ncol = 1)
 coefficients <- data.frame(row.names = c('Intercept', colnames(train_x)))
 
 for (i in 1:n) {
-  netFit <- train(x = train_x, 
+  netFit <- train(x = train_x,
                   y = train_y,
-                  method = "glmnet", 
-                  metric = "ROC", 
-                  tuneGrid=expand.grid(.alpha = seq(0.1,0.9, by=0.1), 
+                  method = "glmnet",
+                  metric = "ROC",
+                  tuneGrid=expand.grid(.alpha = seq(0.1,0.9, by=0.1),
                                        .lambda = seq(0,1,by=0.01)),
-                  trControl = trainControl(method="repeatedcv", 
-                                           number=10, 
-                                           repeats=5, 
-                                           classProbs = T, 
+                  trControl = trainControl(method="repeatedcv",
+                                           number=10,
+                                           repeats=5,
+                                           classProbs = T,
                                            summaryFunction=twoClassSummary))
-
+  
   # Accuracy and training perf
   print(paste0('Training performance: ', getTrainPerf(netFit)))
   
@@ -80,7 +80,7 @@ for (i in 1:n) {
   conf <- confusionMatrix(data = predict_validation, reference = validation_y)
   acc <- conf$overall['Accuracy']
   res[i, 1] <- acc
-
+  
   # Get the final model and extract coefficients
   final.model <- netFit$finalModel
   coefficients_condition <- coef(object = final.model, s = netFit$bestTune$lambda)
@@ -95,7 +95,7 @@ write.csv(res, file = 'output/pred_condition_res.csv')
 write.csv(coefficients, file = 'output/pred_condition_coefficients.csv')
 
 # In both training and validation phenotypes:
-  # ICU = 1, non-ICU = 2. We set 2 as the reference level since this is also what we do in the Limma DE
+# ICU = 1, non-ICU = 2. We set 2 as the reference level since this is also what we do in the Limma DE
 
 ### Training performance
 # AUC on the training data
@@ -106,7 +106,6 @@ training_conf <- conf$table %>% as.data.frame()
 
 roc.data <- roc(as.numeric(as.factor(training.predict)), as.numeric(as.factor(train_y)))
 auc(roc.data)
-ci.auc(roc.data)
 
 ### Validation data
 # ROC curve and get AUC information along with prediction accuracy
@@ -118,13 +117,13 @@ conf <- confusionMatrix(data = pred.raw, reference = validation_y)
 conf
 validation_conf <- conf$table %>% as.data.frame()
 auc(roc.data) #0.87
-auc(roc.data, )
+
 pdf('output/roc_prediction_ICU_nonICU.pdf', width = 3, height = 3)
 roc <- ggroc(roc.data) +
   theme_classic() +
   geom_abline(intercept = 1, slope = 1, lty = 2) +
   labs(x = '1 - Specificity', y = 'Sensitity') +
-  annotate("text", x=0.5, y=0.75, label="AUC: 0.87\nCI: 0.79 - 0.94", color = "black", size = 3)
+  annotate("text", x=0.4, y=0.30, label="AUC: 0.87", color = "black", size = 3)
 
 roc
 dev.off()

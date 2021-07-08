@@ -6,7 +6,7 @@ library(magrittr)
 # MHH cohort
 setwd('/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/')
 load('data/data.RData')
-
+annot.mhh %>% pull(time.convalescence) %>% na.omit() %>% summary()
 cellcounts <- annot.mhh %>% select(condition, CD45Lymphocytes, CD3Tcells, CD19Bcells, plasmablasts)
 cellcounts <- cellcounts[complete.cases(cellcounts), ]
 table(cellcounts$condition)

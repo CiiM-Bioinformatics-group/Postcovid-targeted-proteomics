@@ -39,7 +39,7 @@ samples <- df %>% filter(time == 'W1T2') %>% pull(sampleID) %>% unique()
 df <- df %>% filter(sampleID %in% samples)
 
 pvals <- data.frame('biomarker' = biomarkers, pval.time = NA, pval.condition = NA, pval.interaction = NA)
-
+biomarker <- biomarkers[1]
 for (biomarker in biomarkers) {
   df2 <- df %>% filter(variable == biomarker)
   
@@ -58,7 +58,7 @@ for (biomarker in biomarkers) {
   # Anova
   x <- aov(data=long, formula = value ~ condition + time + condition * time + Error(sampleID))
   y <- unlist(summary(x))  
-  summary(x)
+
   pvals[which(pvals$biomarker == biomarker), 'pval.condition'] <- y['Error: sampleID.Pr(>F)1']
   pvals[which(pvals$biomarker == biomarker), 'pval.time'] <- y['Error: Within.Pr(>F)1']
   pvals[which(pvals$biomarker == biomarker), 'pval.interaction'] <- y['Error: Within.Pr(>F)2']  
