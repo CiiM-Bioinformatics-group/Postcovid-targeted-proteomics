@@ -12,10 +12,10 @@ library(openxlsx)
 library(pheatmap)
 
 # Define the colours we want to use for ICU, non-ICU, postcovid and healthy
-cols <- c('ICU' = '#BC3C29FF', 'non-ICU' = '#E18727FF', 'post-COVID-19' = '#0072B5FF', 'healthy' = '#1fc600')
+cols <- c('ICU' = '#BC3C29FF', 'non-ICU' = '#E18727FF', 'convalescent' = '#0072B5FF', 'healthy' = '#1fc600')
 theme_set(theme_classic() + theme(text = element_text(size = 12)))
 
-# annot radboud unique patients
+# Only first timepoint
 annot.radboud %<>% filter(time == 'W1T1')
 
 annot <- rbind(annot.mhh %>% arrange(time.convalescence) %>% select(age, gender, condition), 
@@ -36,8 +36,8 @@ annot <- annot[which(rownames(annot) %in% rownames(df)), ]
 annot <- na.omit(annot)
 df <- df[which(rownames(df) %in% rownames(annot)), ]
 
-annot$condition[which(annot$condition == 'postcovid')] <- 'post-COVID-19'
-annot$condition <- factor(annot$condition, levels = c('ICU', 'non-ICU', 'post-COVID-19', 'healthy'))
+annot$condition[which(annot$condition == 'postcovid')] <- 'convalescent'
+annot$condition <- factor(annot$condition, levels = c('ICU', 'non-ICU', 'convalescent', 'healthy'))
 annot %<>% arrange(condition)
 df %<>% arrange(match(rownames(df), rownames(annot)))
 
@@ -50,38 +50,43 @@ summary(pca.res)
 pdf('output/pca_figure_1.pdf', width = 6, height = 4)
 ggplot(data = data.frame(pca.res$x)) +
   geom_point(aes(x = PC1, y = PC2, color = annot$condition)) +
-  # scale_color_manual(values = cols) + labs(x = 'PC1 [28.31%]', y = 'PC2 [10.62]', color = 'Condition') +
+  scale_color_manual(values = cols) + labs(x = 'PC1 [28%]', y = 'PC2 [11%]', color = 'Condition') +
   theme(legend.position = 'top')
 dev.off()
 
 # Retrieve the healthy / postcovid samples and run PCA again
-annot %<>% filter(condition %in% c('post-COVID-19', 'healthy'))
+annot %<>% filter(condition %in% c('convalescent', 'healthy'))
 df <- df[which(rownames(df) %in% rownames(annot)), ]
 pca.res <- prcomp(df, center = T, scale. = T)
 
+summary(pca.res)
 
 pdf('output/pca_healthy_postcovid.pdf', width = 6, height = 4)
 ggplot(data = data.frame(pca.res$x)) +
   geom_point(aes(x = PC1, y = PC2, color = annot$condition)) +
-  scale_color_manual(values = cols) + labs(x = 'PC1 [18.6%]', y = 'PC2 [8.6%]', color = 'Condition') +
+  scale_color_manual(values = cols) + labs(x = 'PC1 [19%]', y = 'PC2 [9%]', color = 'Condition') +
   theme(legend.position = 'none')
 dev.off()
-
-x <- colorRampPalette(rev(brewer.pal(n = 7, name = "RdBu")))(100)
-
 
 # Heatmap of the differentially expressed genes
 load('data/data.RData')
 
-DE <- unique(c(
-  read.xlsx('output/biomarkers.xlsx', sheet = 'ICU', colNames=F) %>% pull(X1), 
-  read.xlsx('output/biomarkers.xlsx', sheet = 'nonICU', colNames=F) %>% pull(X1),
-  read.xlsx('output/biomarkers.xlsx', sheet = 'postcovid', colNames=F) %>% pull(X1)
-))
+ICU <- read.xlsx('output/DE.xlsx', sheet = 'ICU_vs_healthy')
+nonICU <- read.xlsx('output/DE.xlsx', sheet = 'nonICU_vs_healthy')
+postcovid <- read.xlsx('output/DE.xlsx', sheet = 'postcovid_vs_healthy') %>% filter(Olink.panel != 'Olink NEUROLOGY')
 
+ICU %<>% filter(significance == T) %>% pull(OlinkID)
+nonICU %<>% filter(significance == T) %>% pull(OlinkID)
+postcovid %<>% filter(significance == T) %>% pull(OlinkID)
+
+DE <- unique(c(ICU, nonICU, postcovid))
+
+DE <- DE[which(DE %in% colnames(df))]
 df %<>% select(all_of(DE))
 
-pdf('output/heatmap_figure_1.pdf', width = 8, height = 4)
+# Heatmap Fig. 2
+# pdf('output/heatmap_figure_2.pdf', width = 8, height = 4)
+png('output/heatmap_figure_2.png', width = 13, height = 6, units = 'in', res = 700)
 ph <- pheatmap::pheatmap(mat = t(df), 
          scale = 'row',
          show_colnames = F, 
@@ -92,19 +97,21 @@ ph <- pheatmap::pheatmap(mat = t(df),
          annotation_colors = list(condition = cols), 
          annotation_names_col = F, 
          fontsize = 8,
-         color = x, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdBu")))(100), 
          cutree_rows = 4)
+ph
 dev.off()
 
+# Excel sheets with the clusters
+prots <- cutree(ph$tree_row, k = 4)
 
-# Export excel sheet with clusters
-prots <- sort(cutree(ph$tree_row, k=4))
-names(prots) <- conv %>% filter(OlinkID %in% names(prots)) %>% arrange(match(OlinkID, names(prots))) %>% pull(Assay)
+# Reorder based on row order of pheatmap
+prots <- prots[ph$tree_row$order]
+# names(prots) <- conv %>% filter(OlinkID %in% names(prots)) %>% arrange(match(OlinkID, names(prots))) %>% pull(Assay)
 prots
-table(prots)
+data.frame(
+  cluster = prots, 
+  protein = names(prots)
+) -> df
 
-df2 <- list('1' = names(prots[which(prots == 1)]), 
-                  '2' = names(prots[which(prots == 3)]), 
-                  '3' = names(prots[which(prots == 2)]), 
-                  '4' = names(prots[which(prots == 4)]))
-write.xlsx('output/clusters_heatmap.xlsx', x = df2)
+write.xlsx('output/clusters_heatmap.xlsx', x = df)

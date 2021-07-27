@@ -28,6 +28,10 @@ ggplot() +
   labs(x = 'PC1', y = 'PC2', color='Condition', title = 'MHH cohort')
 dev.off()
 
+# We find one outlier: TK_41
+pcs[which(pcs$PC2 < -20), 1:5]
+
+
 # Radboud. Only T1
 radboud <- na.omit(radboud)
 annot.radboud %<>% filter(time == 'W1T1')
@@ -48,6 +52,8 @@ ggplot() +
   labs(x = 'PC1', y = 'PC2', color='Condition', title = 'Radboud cohort')
 dev.off()
 
+# One outlier
+pcs[which(pcs$PC1 > 20), 1:3] # RUMC_0112
 
 # Breda
 breda <- na.omit(breda)
@@ -69,9 +75,10 @@ ggplot() +
   labs(x = 'PC1', y = 'PC2', color='Condition', title = 'Breda cohort')
 dev.off()
 
+# No outliers in Breda cohort T1
 
 ## Remove apparent outliers
-# Radboud: 1 sample
+# Radboud: 1 samples
 # MHH: 1 sample
 # Breda: 0 sample
 rm(list = ls())
@@ -81,13 +88,13 @@ rem <- c('TK_41', 'RUMC_0112')
 annot.mhh <- annot.mhh[which(!rownames(annot.mhh) %in% rem), ]
 mhh <- mhh[which(!rownames(mhh) %in% rem), ]
 
-annot.radboud <- annot.radboud[which(!annot.radboud$sampleID %in% rem), ]
+annot.radboud <- annot.radboud[which(!annot.radboud$pat_id %in% rem), ]
 radboud <- radboud[which(rownames(radboud) %in% rownames(annot.radboud)), ]
 
 rm(rem)
 save.image(file = 'data/data.RData')
 
-
+####################################
 
 
 # PCA on the inflammatory panel across all three cohorts

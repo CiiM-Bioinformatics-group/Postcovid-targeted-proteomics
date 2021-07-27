@@ -44,11 +44,11 @@ all(rownames(annot) == rownames(df))
 # Split in four conditions and determine clustering order for the four conditions
 #####################
 
-annot$condition[which(annot$condition == 'postcovid')] <- 'post-COVID-19'
+annot$condition[which(annot$condition == 'postcovid')] <- 'Convalescent'
 
 annot.ICU <- annot %>% filter(condition == 'ICU')
 annot.nonICU <- annot %>% filter(condition == 'non-ICU')
-annot.postcovid <- annot %>% filter(condition == 'post-COVID-19')
+annot.postcovid <- annot %>% filter(condition == 'Convalescent')
 annot.healthy <- annot %>% filter(condition == 'healthy')
 
 df.ICU <- df[which(rownames(df) %in% rownames(annot.ICU)), ]
@@ -193,7 +193,7 @@ do.heatmap <- function(cor.df.ICU, cor.df.nonICU, cor.df.postcovid, cor.df.healt
     
     ggplot() +
       geom_tile(data = cor.df.postcovid.melt, aes(Var2, Var1, fill = value)) +
-      labs(x = 'Proteins', y = 'Proteins', title = 'post-COVID-19', fill = 'Correlation') +
+      labs(x = 'Proteins', y = 'Proteins', title = 'Convalescent', fill = 'Correlation') +
       scale_fill_gradientn(colours = colours, limits = lims, oob = scales::squish),
     
     ggplot() +

@@ -20,8 +20,8 @@ radboud <- na.omit(radboud)
 annot.radboud <- annot.radboud[which(rownames(annot.radboud) %in% rownames(radboud)), ]
 
 # 61 patients that were consistently samples over the first three timepoints
-samples <- annot.radboud %>% group_by(sampleID) %>% summarise(n= n()) %>% filter(n >= 3) %>% pull(sampleID)
-annot.radboud %<>% filter(sampleID %in% samples)
+samples <- annot.radboud %>% group_by(pat_id) %>% summarise(n= n()) %>% filter(n >= 3) %>% pull(pat_id)
+annot.radboud %<>% filter(pat_id %in% samples)
 radboud <- radboud[which(rownames(radboud) %in% rownames(annot.radboud)), ]
 
 all(rownames(radboud) == rownames(annot.radboud))
@@ -64,9 +64,9 @@ pcs <- cbind(pcs, annot.radboud)
 
 # Identify the samples that go down from T1 to T2 and flip them
 flip <- c()
-for (sample in unique(pcs$sampleID)) {
+for (sample in unique(pcs$pat_id)) {
   
-  sub <- pcs %>% filter(sampleID == sample)
+  sub <- pcs %>% filter(pat_id == sample)
   
   # Is T2 smaller than T1 in PC1?
   T1 <- sub %>% filter(time == 'W1T1') %>% pull(PC1)
@@ -75,14 +75,18 @@ for (sample in unique(pcs$sampleID)) {
   if (T1 > T2) { flip <- c(flip, sample) }
 }
 
+pcs[which(pcs$time == 'W1T1'), ]$time <- 'T1'
+pcs[which(pcs$time == 'W1T2'), ]$time <- 'T2'
+pcs[which(pcs$time == 'W1T3'), ]$time <- 'T3'
+
 # Flip the samples that need flipping
-pcs[which(pcs$sampleID %in% flip), 'PC1'] <- -1 * pcs[which(pcs$sampleID %in% flip), 'PC1']
+pcs[which(pcs$pat_id %in% flip), 'PC1'] <- -1 * pcs[which(pcs$pat_id %in% flip), 'PC1']
 
 # Color by sampleID
 pdf('output/anova_pca.pdf', width = 5, height = 3)
 ggplot() +
-  geom_point(data = pcs, aes(x = time, y = PC1, color = sampleID)) +
-  geom_line(data=pcs, aes(x = time,y = PC1, group = sampleID, color = sampleID)) +
+  geom_point(data = pcs, aes(x = time, y = PC1, color = pat_id)) +
+  geom_line(data=pcs, aes(x = time,y = PC1, group = pat_id, color = pat_id)) +
   theme_classic() +
   theme(legend.position = 'none', 
         axis.text.x = element_text(hjust = 1, vjust = 1, angle = 45)) +
@@ -93,7 +97,7 @@ dev.off()
 # Color by condition. We see no difference between ICU and nonICU
 ggplot() +
   geom_point(data = pcs, aes(x = time, y = PC1, color = condition)) +
-  geom_line(data=pcs, aes(x = time,y = PC1, group = sampleID, color = condition)) +
+  geom_line(data=pcs, aes(x = time,y = PC1, group = pat_id, color = condition)) +
   theme_classic() +
   theme(legend.position = 'none') +
   scale_x_discrete(expand = c(0.05, 0.05))

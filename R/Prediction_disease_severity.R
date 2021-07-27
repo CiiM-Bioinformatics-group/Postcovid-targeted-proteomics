@@ -11,7 +11,10 @@ library(magrittr)
 # Training: Breda cohort
 # Test: Radboud cohort
 
-load('data.RData')
+load('data/data.RData')
+
+annot.radboud %<>% select(age, gender, condition, time, cohort)
+annot.breda %<>% select(age, gender, condition, timepoint, cohort)
 
 common <- intersect(colnames(breda), colnames(radboud))
 breda %<>% select(all_of(common)) %>% na.omit()
@@ -20,7 +23,7 @@ radboud %<>% select(all_of(common)) %>% na.omit()
 annot.radboud <- annot.radboud[which(rownames(annot.radboud) %in% rownames(radboud)), ]
 annot.breda <- annot.breda[which(rownames(annot.breda) %in% rownames(breda)), ]
 
-annot.breda %<>% na.omit()
+annot.breda %<>% filter(timepoint == 'T1') %>% na.omit()
 annot.radboud %<>% filter(time == 'W1T1') %>% na.omit()
 
 annot.breda[which(annot.breda$condition == 'non-ICU'), 'condition'] <- 'nonICU'
@@ -56,7 +59,7 @@ validation_y <- factor(annot.radboud$condition, levels = c('ICU', 'nonICU'))
 ## Make the model
 # Train 100 times. Each time, save the coefficients so we can see which proteins were set to zero and which are included in the model.
 
-n <- 100
+n <- 1
 res <- matrix(NA, nrow = n, ncol = 1)
 coefficients <- data.frame(row.names = c('Intercept', colnames(train_x)))
 
@@ -68,7 +71,7 @@ for (i in 1:n) {
                   tuneGrid=expand.grid(.alpha = seq(0.1,0.9, by=0.1),
                                        .lambda = seq(0,1,by=0.01)),
                   trControl = trainControl(method="repeatedcv",
-                                           number=10,
+                                           number=5,
                                            repeats=5,
                                            classProbs = T,
                                            summaryFunction=twoClassSummary))
@@ -90,9 +93,9 @@ for (i in 1:n) {
   coefficients <- cbind(coefficients, coefficients_condition)
 }
 
-saveRDS(object = netFit, file = 'output/prediction_model_condition.RDS')
-write.csv(res, file = 'output/pred_condition_res.csv')
-write.csv(coefficients, file = 'output/pred_condition_coefficients.csv')
+# saveRDS(object = netFit, file = 'output/prediction_model_condition.RDS')
+# write.csv(res, file = 'output/pred_condition_res.csv')
+# write.csv(coefficients, file = 'output/pred_condition_coefficients.csv')
 
 # In both training and validation phenotypes:
 # ICU = 1, non-ICU = 2. We set 2 as the reference level since this is also what we do in the Limma DE

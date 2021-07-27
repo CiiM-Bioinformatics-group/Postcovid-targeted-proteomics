@@ -141,6 +141,7 @@ annot.mhh <- annot.mhh %>% arrange(desc(time.convalescence))
 mhh <- mhh %>% na.omit()
 
 annot.mhh <- annot.mhh[which(rownames(annot.mhh) %in% rownames(mhh)), ]
+annot.mhh$sex <- annot.mhh$gender
 
 mhh <- mhh[which(rownames(mhh) %in% rownames(annot.mhh)), ]
 mhh <-   mhh %>%  arrange(match(rownames(mhh), rownames(annot.mhh)))
@@ -164,12 +165,12 @@ pheatmap(mat = t(sub),
          breaks = seq(-1.5, 1.5, length.out = 100), 
          color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdBu")))(100), 
          cluster_cols = F, 
-         annotation_col = annot.mhh %>% select(age, gender, time.convalescence) %>% 
+         annotation_col = annot.mhh %>% select(age, sex, time.convalescence) %>% 
            rename('Time of convalescence' = time.convalescence, 
-                  'Gender' = gender, 
+                  'Sex' = sex, 
                   'Age' = age), 
          annotation_colors = list(
-           'Gender' = c(male = 'steelblue', female = 'red'), 
+           'Sex' = c(male = 'steelblue', female = 'red'), 
            'Age' = color_age, 
            'Time of convalescence' = color_time
          ))
@@ -182,6 +183,7 @@ annot.mhh <- annot.mhh[which(!is.na(annot.mhh$antibody.S1), !is.na(annot.mhh$ant
 
 annot.mhh <- annot.mhh %>% arrange(antibody.ncp)
 mhh <- mhh %>% na.omit()
+annot.mhh$sex <- annot.mhh$gender
 
 annot.mhh <- annot.mhh[which(rownames(annot.mhh) %in% rownames(mhh)), ]
 
@@ -207,13 +209,13 @@ pheatmap(mat = t(sub),
          color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdBu")))(100), 
          cluster_cols = F, 
          annotation_col = annot.mhh %>% 
-           select(age, gender, antibody.S1, antibody.ncp) %>% 
+           select(age, sex, antibody.S1, antibody.ncp) %>% 
            rename('Antibody (S1)' = antibody.S1, 
                   'Antibody (NCP)' = antibody.ncp, 
-                  'Gender' = gender, 
+                  'Sex' = sex, 
                   'Age' = age), 
          annotation_colors = list(
-           'Gender' = c(male = 'steelblue', female = 'red'), 
+           'Sex' = c(male = 'steelblue', female = 'red'), 
            'Age' = color_age, 
            'Antibody (S1)' = color_S1, 
            'Antibody (NCP)' = color_NCP 

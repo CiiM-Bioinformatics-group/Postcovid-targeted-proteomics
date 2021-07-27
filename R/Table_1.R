@@ -6,6 +6,7 @@ library(magrittr)
 # MHH cohort
 setwd('/Users/martijnzoodsma/Documents/PhD/corona/Postcovid-targeted-proteomics/')
 load('data/data.RData')
+
 annot.mhh %>% pull(time.convalescence) %>% na.omit() %>% summary()
 cellcounts <- annot.mhh %>% select(condition, CD45Lymphocytes, CD3Tcells, CD19Bcells, plasmablasts)
 cellcounts <- cellcounts[complete.cases(cellcounts), ]
@@ -53,85 +54,137 @@ library(magrittr)
 rm(list = ls())
 load('data/data.RData')
 
-annot <- read.xlsx('/Users/martijnzoodsma/Documents/PhD/corona/data/Nijmegen cohort/pat_info/Clinical data ALL RUMC patients (incl transfers) Castor export 220720_Correct timepoints RUMC plasma v3.xlsx')
-annot <- cbind(reshape2::colsplit(annot$record_id, 
-                                  pattern = '=', 
-                                  names = c('RUMC', 'BERN')) %>% 
-                 select(RUMC) %>% mutate(RUMC = gsub(' ', '', RUMC)), annot)
+annot.radboud %<>% filter(time == 'W1T1')
+annot.radboud %>% group_by(condition) %>% summarise(mean = mean(age), sd = sd(age))
+table(annot.radboud$gender, annot.radboud$condition)
+annot.radboud %>% group_by(condition) %>% summarise(mean = mean(na.omit(BMI)), sd = sd(na.omit(BMI)))
+table(annot.radboud$condition, annot.radboud$`PCR_proven_COVID-19`)
 
-samples <- unique(annot.radboud$pat_id)
-annot %<>% filter(RUMC %in% samples)
+table(annot.radboud$condition, is.na(annot.radboud$BMI))
+# Blood cell counts. Remove NAs
+counts <- annot.radboud[]
 
-annot.radboud <- annot.radboud %>% 
-  filter(time == 'W1T1') %>% 
-  arrange(match(pat_id, samples))
+x <- c('condition', colnames(annot.radboud)[grepl('bloodcell', colnames(annot.radboud))])
+tmp <- annot.radboud[, x]
+tmp <- na.omit(tmp) #106 / 143
+colnames(tmp)
 
-annot %<>% filter(RUMC %in% annot.radboud$pat_id) %>% arrange(match(RUMC, annot.radboud$pat_id)) 
+tmp %>% group_by(condition) %>% 
+  summarise(mean = mean(White.bloodcell.differentiation.neutrophils.at.admission), 
+            sd = sd(White.bloodcell.differentiation.neutrophils.at.admission))
 
-# How many patients with presumed vs proven COVID-19 split by condition?
-table(annot$w1_tp1_location, annot$COVID_confirmed)
+tmp %>% group_by(condition) %>% 
+  summarise(mean = mean(White.bloodcell.differentiation.monocytes.at.admission), 
+            sd = sd(White.bloodcell.differentiation.monocytes.at.admission))
 
-cellcounts <- annot %>% select(colnames(annot)[grepl('adm_diff', colnames(annot))])
-cellcounts <- cbind(cellcounts, annot %>% select(RUMC))
-colnames(cellcounts) <- c('neutrophils', 'lymphocytes', 'monocytes', 'eosinophils', 'basophils', 'sample')
-cellcounts[cellcounts == 'Not done'] <- NA
+tmp %>% group_by(condition) %>% 
+  summarise(mean = mean(White.bloodcell.differentiation.lymphocytes.at.admission), 
+            sd = sd(White.bloodcell.differentiation.lymphocytes.at.admission))
 
-apply(cellcounts, 2, is.na) %>% colSums()
-cellcounts <- cellcounts[complete.cases(cellcounts), ]
-apply(cellcounts, 2, is.na) %>% colSums()
+tmp %>% group_by(condition) %>% 
+  summarise(mean = mean(White.bloodcell.differentiation.eosinophils.at.admission), 
+            sd = sd(White.bloodcell.differentiation.eosinophils.at.admission))
 
-cellcounts$neutrophils <- as.double(cellcounts$neutrophils)
-cellcounts$lymphocytes <- as.double(cellcounts$lymphocytes)
-cellcounts$monocytes <- as.double(cellcounts$monocytes)
-cellcounts$eosinophils <- as.double(cellcounts$eosinophils)
-cellcounts$basophils <- as.double(cellcounts$basophils) 
+tmp %>% group_by(condition) %>% 
+  summarise(mean = mean(White.bloodcell.differentiation.basophils.at.admission), 
+            sd = sd(White.bloodcell.differentiation.basophils.at.admission))
 
-df <- cbind(cellcounts, 
-            annot.radboud %>% filter(pat_id %in% cellcounts$sample) %>% arrange(match(pat_id, cellcounts$sample)) %>% select(condition))
-table(df$condition)
-# Lymphocytes
-df %>% filter(condition == 'ICU') %>% pull(lymphocytes) %>% na.omit() %>% mean()
-df %>% filter(condition == 'ICU') %>% pull(lymphocytes) %>% na.omit() %>% sd()
+# Breda
+annot.breda %<>% filter(timepoint == 'T1')
+annot.breda %<>% na.omit()
+str(annot.breda)
+annot.breda %>% group_by(condition) %>% summarise(mean = mean(as.numeric(age)), sd = sd(as.numeric(age)))
+table(annot.breda$gender, annot.breda$condition)
 
-df %>% filter(condition == 'non-ICU') %>% pull(lymphocytes) %>% na.omit() %>% mean()
-df %>% filter(condition == 'non-ICU') %>% pull(lymphocytes) %>% na.omit() %>% sd()
+# annot.breda %>% group_by(condition) %>% summarise(mean = mean(as.numeric(BMI)), sd = sd(na.omit(BMI)))
+table(annot.breda$condition, annot.breda$`PCR_proven_COVID-19`)
 
-# monocytes
-df %>% filter(condition == 'ICU') %>% pull(monocytes) %>% na.omit() %>% mean()
-df %>% filter(condition == 'ICU') %>% pull(monocytes) %>% na.omit() %>% sd()
 
-df %>% filter(condition == 'non-ICU') %>% pull(monocytes) %>% na.omit() %>% mean()
-df %>% filter(condition == 'non-ICU') %>% pull(monocytes) %>% na.omit() %>% sd()
+# Compare demographic data
+rm(list = ls())
+load('data/data.RData')
 
-# neutrophils
-df %>% filter(condition == 'ICU') %>% pull(neutrophils) %>% na.omit() %>% mean()
-df %>% filter(condition == 'ICU') %>% pull(neutrophils) %>% na.omit() %>% sd()
+breda <- read.xlsx('/Users/martijnzoodsma/Documents/PhD/corona/data/Breda/clean_patinfo_breda.xlsx')
 
-df %>% filter(condition == 'non-ICU') %>% pull(neutrophils) %>% na.omit() %>% mean()
-df %>% filter(condition == 'non-ICU') %>% pull(neutrophils) %>% na.omit() %>% sd()
+annot.radboud %<>% filter(time == 'W1T1')
+annot.breda %<>% filter(timepoint == 'T1')
+annot.breda %<>% na.omit(annot.breda)
 
-# eosinophils
-df %>% filter(condition == 'ICU') %>% pull(eosinophils) %>% na.omit() %>% mean()
-df %>% filter(condition == 'ICU') %>% pull(eosinophils) %>% na.omit() %>% sd()
+table(annot.radboud$condition)
+table(annot.breda$condition)
+table(annot.mhh$condition)
 
-df %>% filter(condition == 'non-ICU') %>% pull(eosinophils) %>% na.omit() %>% mean()
-df %>% filter(condition == 'non-ICU') %>% pull(eosinophils) %>% na.omit() %>% sd()
+annot.breda <- merge(x = annot.breda, y = breda, by.x = 'patient_nr', by.y = 'number')
+annot.breda$age <- annot.breda$age.x
+annot.breda$gender <- annot.breda$gender.x
 
-# basophils
-df %>% filter(condition == 'ICU') %>% pull(basophils) %>% na.omit() %>% mean()
-df %>% filter(condition == 'ICU') %>% pull(basophils) %>% na.omit() %>% sd()
+# Age, gender, BMI,
+df <- rbind(
+  annot.radboud %>% filter(time == 'W1T1') %>% mutate(cohort = 'radboud') %>% select(age, gender, condition, cohort), 
+  annot.mhh %>% mutate(cohort = 'mhh') %>% select(age, gender, condition, cohort), 
+  annot.breda %>% mutate(cohort = 'breda') %>% filter(timepoint=='T1') %>% select(age, gender, condition, cohort)
+)
+str(df)
+df$age <- as.numeric(df$age)
+df %>% group_by(condition) %>% summarise(mean = mean(age), sd = sd(age))
 
-df %>% filter(condition == 'non-ICU') %>% pull(basophils) %>% na.omit() %>% mean()
-df %>% filter(condition == 'non-ICU') %>% pull(basophils) %>% na.omit() %>% sd()
+res.aov <- aov(age ~ condition, data = df)
+summary(res.aov)
 
-## Tests
+# Ages vs healthy
+wilcox.test(
+  x = df %>% filter(condition == 'ICU') %>% pull(age) %>% as.numeric(), 
+  y = df %>% filter(condition == 'healthy') %>% pull(age) %>% as.numeric()
+)
+
+wilcox.test(
+  x = df %>% filter(condition == 'non-ICU') %>% pull(age) %>% as.numeric(), 
+  y = df %>% filter(condition == 'healthy') %>% pull(age) %>% as.numeric()
+)
+
+chisq.test(df$gender, df$condition)
+
+df <- rbind(
+  annot.radboud %>% filter(time == 'W1T1') %>% mutate(cohort = 'radboud') %>% select(condition, cohort, BMI), 
+  annot.breda %>% mutate(cohort = 'breda') %>% filter(timepoint=='T1') %>% select(condition, cohort, BMI)
+)
+
+df %>% group_by(condition, cohort) %>% summarise(mean = mean(na.omit(BMI)), sd = sd(na.omit(BMI)), n = n())
+
+res.aov <- aov(BMI ~ condition, data=df)                                    
+summary(res.aov)
+
+
+
+
+
+## Tests for cell counts
+load('data/data.RData')
+x = annot.mhh %>% filter(condition == 'healthy') %>% pull(CD45Lymphocytes) %>% na.omit() / 1000
+y = annot.radboud %>% filter(condition == 'ICU') %>% pull(White.bloodcell.differentiation.lymphocytes.at.admission)
+wilcox.test(x,y)
+summary(x)
+summary(y)
+
+x = annot.mhh %>% filter(condition == 'healthy') %>% pull(CD45Lymphocytes) %>% na.omit() / 1000
+y = annot.radboud %>% filter(condition == 'non-ICU') %>% pull(White.bloodcell.differentiation.lymphocytes.at.admission)
+sd(na.omit(y))
+wilcox.test(x,y)
+summary(x)
+summary(y)
+head(tmp)
+head(annot.radboud)
+annot.radboud %>% pull(White.bloodcell.differentiation.lymphocytes.at.admission) %>% na.omit()
+tmp %>% pull(White.bloodcell.differentiation.lymphocytes.at.admission) %>% na.omit()
+head(tmp)
 # Divide the MHH counts by 1000 so we arrive at the same unit
-wilcox.test(x = annot.mhh %>% filter(condition == 'healthy') %>% pull(CD45Lymphocytes) %>% na.omit() / 1000, 
-            y = df %>% filter(condition == 'ICU') %>% pull(lymphocytes) %>% na.omit())
+wilcox.test(x = tmp %>% filter(condition == 'ICU') %>% pull(White.bloodcell.differentiation.lymphocytes.at.admission),
+            y = annot.mhh %>% filter(condition == 'healthy') %>% pull(CD45Lymphocytes) %>% na.omit() / 1000, alternative = 'less')
+# p = 7e-5 that MHH counts are higher than RAD
 
-wilcox.test(x = annot.mhh %>% filter(condition == 'healthy') %>% pull(CD45Lymphocytes) %>% na.omit() / 1000, 
-            y = df %>% filter(condition == 'non-ICU') %>% pull(lymphocytes) %>% na.omit())
+wilcox.test(x = tmp %>% filter(condition == 'non-ICU') %>% pull(White.bloodcell.differentiation.lymphocytes.at.admission),
+            y = annot.mhh %>% filter(condition == 'healthy') %>% pull(CD45Lymphocytes) %>% na.omit() / 1000, alternative = 'less')
+# p = 2e-9 that MHH non-ICU counts are higher than RAD
 
-wilcox.test(x = annot.mhh %>% filter(condition == 'healthy') %>% pull(CD45Lymphocytes) %>% na.omit() / 1000, 
-            y = annot.mhh %>% filter(condition == 'postcovid') %>% pull(CD45Lymphocytes) %>% na.omit() / 1000)
-
+wilcox.test(x = annot.mhh %>% filter(condition == 'postcovid') %>% pull(CD45Lymphocytes) %>% na.omit() / 1000,
+            y = annot.mhh %>% filter(condition == 'healthy') %>% pull(CD45Lymphocytes) %>% na.omit() / 1000, alternative = 'greater')

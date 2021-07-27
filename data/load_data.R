@@ -102,30 +102,30 @@ tmp$Row.names <- NULL
 radboud <- tmp
 
 # Annotation
-annot.radboud <- read.xlsx('data/Radboud/patient_information.xlsx', rowNames = T, colNames = T)
+# annot.radboud <- read.xlsx('data/Radboud/patient_information.xlsx', rowNames = T, colNames = T) # Old
+annot.radboud <- read.xlsx('data/Radboud/patient_information_Aline.xlsx', rowNames = T, colNames = T)
+samples.keep <- rownames(annot.radboud)
 
+# Merge the annotation with the full IDS from Radboud cohort to obtain dataframe with annotation per timepoint
 info <- data.frame('full_id' = rownames(radboud))
-
 info <- cbind(info,
-              reshape2::colsplit(info$full_id, " ", c('pat_id', 'time'))) %>% select(-time)
+              reshape2::colsplit(info$full_id, " ", c('pat_id', 'time')))
 
-annot.radboud <- merge(info, annot.radboud, by.x = 'full_id', by.y = 'row.names', all=T, sort=F)
-
-annot.radboud <- annot.radboud[which(!is.na(annot.radboud$time)), ]
+# By setting all=F we only keep the samples we are allowed to use.
+annot.radboud <- merge(info, annot.radboud, by.x = 'pat_id', by.y = 'row.names', all = F, sort=F)
 rownames(annot.radboud) <- annot.radboud$full_id
 
-annot.radboud <- annot.radboud[which(rownames(annot.radboud) %in% rownames(radboud)), ]
-annot.radboud %<>% arrange(match(rownames(annot.radboud), rownames(radboud)))
-
-radboud <- radboud[which(rownames(radboud) %in% rownames(annot.radboud)), ]
+radboud <- radboud[which(rownames(radboud) %in% rownames(annot.radboud)), ] 
 radboud %<>% arrange(match(rownames(radboud), rownames(annot.radboud)))
+
+stopifnot(all(rownames(annot.radboud) == rownames(radboud)))
 
 # Breda
 breda <- read.xlsx('data/Breda/integration_breda_MHH_inf.xlsx', sheet = 'Breda final', rowNames = T, colNames = T, sep.names = ' ')
 colnames(breda) <- conv %>% 
   filter(Olink.panel == 'Olink INFLAMMATION') %>% 
   filter(Assay %in% colnames(breda)) %>% 
-  arrange(match(Assay, colnames(cvd))) %>% 
+  arrange(match(Assay, colnames(breda))) %>% 
   pull(OlinkID)
 
 annot.breda <- read.xlsx('data/Breda/patient_info_breda.xlsx')
@@ -145,6 +145,9 @@ stopifnot(all(rownames(breda) == rownames(annot.breda)))
 # Normalise annotation
 annot.breda %<>% 
   mutate(condition = ifelse(ICU == 'yes', 'ICU', 'non-ICU')) 
+
+annot.radboud %<>%
+  mutate(gender = ifelse(gender == 'Male', 'male', 'female'))
 
 annot.mhh$cohort <- 'MHH'
 annot.breda$cohort <- 'Breda'

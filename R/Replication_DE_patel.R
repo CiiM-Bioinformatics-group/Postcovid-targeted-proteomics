@@ -15,8 +15,8 @@ severe <- patel %>% filter(Comparison == "Control_v_Severe")
 critical <- patel %>% filter(Comparison == "Control_v_Critical") 
 
 # Own DE results
-ICU <- openxlsx::read.xlsx('output/DE.xlsx', sheet = 'healthy_vs_ICU')
-nonICU <- openxlsx::read.xlsx('output/DE.xlsx', sheet = 'healthy_vs_nonICU')
+ICU <- openxlsx::read.xlsx('output/DE.xlsx', sheet = 'ICU_vs_healthy')
+nonICU <- openxlsx::read.xlsx('output/DE.xlsx', sheet = 'nonICU_vs_healthy')
 
 # Comparisons:
   # ICU vs Healthy compared to Critical vs Healthy
@@ -30,24 +30,25 @@ all(ICU$OlinkID == critical$OLINK.ID)
 
 # How many same direction? Without significance threshold
 table(ICU$logFC < 0, critical$logFC < 0)
-#        FALSE TRUE
-# FALSE    69   29
-# TRUE     13   34
-# 103 same direction, while 42 different
-# 59 / 41%
+#       FALSE TRUE
+# FALSE    70   29
+# TRUE     12   34
+# 104 same direction, while 41 different
+# 71% / 29%
 
+# With sig. threshold. How many same dir?
 ICU %<>% filter(significance == TRUE)
 critical %<>% filter(OLINK.ID %in% ICU$OlinkID) %>% arrange(match(OLINK.ID, ICU$OlinkID))
 
 table(ICU$logFC < 0, critical$logFC < 0)
 #         FALSE TRUE
 # FALSE    62   20
-# TRUE      6   25
-# 87 same dir, 26 not
-# 61% same dir, 29% not
+# TRUE      6   26
+# 88 same dir, 26 not
+# 77% same dir, 23% not
 
-table(critical$adj.P.Val < 0.05) # 58 FALSE, 55 TRUE
-# 55 out of 113 = 48%
+table(critical$adj.P.Val < 0.05) # 58 FALSE, 56 TRUE
+# 56 out of 114 = 49%
 
 #################
 # non-ICU vs severe
@@ -59,20 +60,20 @@ all(nonICU$OlinkID == severe$OLINK.ID)
 # How many same direction without significance threshold?
 table(nonICU$logFC < 0, severe$logFC < 0)
 #         FALSE TRUE
-# FALSE    42   56
-# TRUE     10   37
-
+# FALSE    43   54
+# TRUE     9   39
+# 82 same dir, 63 not
+# 56% same dir, 45% not
 
 nonICU %<>% filter(significance == TRUE)
 severe %<>% filter(OLINK.ID %in% nonICU$OlinkID) %>% arrange(match(OLINK.ID, nonICU$OlinkID))
 
 table(nonICU$logFC < 0, severe$logFC < 0)
 #         FALSE TRUE
-# FALSE    37   38
-# TRUE      7   21
+# FALSE    37   39
+# TRUE      8   22
 # 58 same dir, 45 not
-# 56% same dir, 44% not
+# 54% same dir, 46% not
 
 table(severe$adj.P.Val < 0.05)
 # 12 out of 113 = 11%
-

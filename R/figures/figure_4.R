@@ -47,19 +47,19 @@ make.plot <- function(prots, ncol = 1, nrow = 1, textsize = 4, vjust = 0) {
     radboud %<>% dplyr::select(prot)
     colnames(radboud) <- conv %>% filter(OlinkID %in% colnames(radboud)) %>% arrange(match(OlinkID, colnames(radboud))) %>% pull(Assay) %>% make.unique()
     
-    radboud <- cbind(radboud, annot.radboud)
-    radboud <- reshape2::melt(radboud, id.vars = colnames(annot.radboud))
-    # radboud %<>% filter(time %in% c('W1T1', 'W1T2', 'W1T3', 'W2T1', 'W2T2', 'W2T3'))
-    radboud %<>% filter(time %in% c('W1T1', 'W1T2', 'W1T3', 'W2T1', 'W2T2'))
-    # radboud %<>% filter(time %in% c('W1T1', 'W1T2', 'W1T3'))
+    radboud <- cbind(radboud, annot.radboud %>% select(condition, time))
+    radboud <- reshape2::melt(radboud)
+    radboud %<>% filter(time %in% c('W1T1', 'W1T2', 'W1T3'))
     
     radboud %<>% na.omit(radboud)
     
     radboud %<>% group_by(variable, time, condition) %>% summarise(mean = mean(value, na.rm = T), se = std(value))
-    # radboud$time <- factor(radboud$time, levels = c('W1T1', 'W1T2', 'W1T3', 'W2T1', 'W2T2', 'postcovid', 'healthy'))
-    radboud$time <- factor(radboud$time, levels = c('W1T1', 'W1T2', 'W1T3', 'postcovid', 'healthy'))
     
-    
+    #### Rename the variables
+    radboud[which(radboud$time == 'W1T1'), ]$time <- 'T1'
+    radboud[which(radboud$time == 'W1T2'), ]$time <- 'T2'
+    radboud[which(radboud$time == 'W1T3'), ]$time <- 'T3'
+    radboud$time <- factor(radboud$time, levels = c('T1', 'T2', 'T3', 'Convalescent', 'Healthy'))
     
     ##################
     # MHH data
@@ -70,24 +70,16 @@ make.plot <- function(prots, ncol = 1, nrow = 1, textsize = 4, vjust = 0) {
     mhh <- reshape2::melt(mhh, id.vars = 'condition')
     mhh %<>% filter(condition != 'bridge')
     mhh %<>% na.omit(mhh)
-    # mhh$condition <- factor(mhh$condition, levels = c('W1T1', 'W1T2', 'W1T3', 'W2T1', 'W2T2', 'postcovid', 'healthy'))
-    mhh$condition <- factor(mhh$condition, levels = c('W1T1', 'W1T2', 'W1T3', 'postcovid', 'healthy'))
+    mhh[which(mhh$condition == 'postcovid'), ]$condition <- 'Convalescent'
+    mhh[which(mhh$condition == 'healthy'), ]$condition <- 'Healthy'
+    
+    mhh$condition <- factor(mhh$condition, levels = levels(radboud$time))
     
     # Set the right colors.
     radboud$color <- ''
-    radboud.1 <- radboud %>% filter(time %in% c('W1T1', 'W1T2', 'W1T3'))
+    radboud.1 <- radboud %>% filter(time %in% c('T1', 'T2', 'T3'))
     radboud.1[which(radboud.1$condition == 'ICU'), 'color']<- '#BC3C29FF'
     radboud.1[which(radboud.1$condition == 'non-ICU'), 'color'] <- '#E18727FF'
-    
-    radboud.2 <- radboud %>% filter(time %in% c('W2T1', 'W2T2'))
-    radboud.2[which(radboud.2$condition == 'ICU'), 'color']<- 'gray'
-    radboud.2[which(radboud.2$condition == 'non-ICU'), 'color'] <- 'gray'
-    
-    # Manually construct a dataframe for the connecting lines from W1T3 to W2T1 in gray
-    x <- rbind(
-      radboud.1 %>% filter(time =='W1T3'), 
-      radboud.2 %>% filter(time == 'W2T1')
-    ) %>% mutate(color = 'gray')
     
     pd <- position_dodge(width = 0.2)
     
@@ -106,11 +98,6 @@ make.plot <- function(prots, ncol = 1, nrow = 1, textsize = 4, vjust = 0) {
       geom_jitter(data = mhh, aes(x = condition, y = value), alpha = 0.3, width = 0.2) +
       # geom_signif(data = mhh, aes(x = condition, y = value), tip_length = 0, annotations = mapsignif(pval), xmin = 'healthy', xmax = 'postcovid', y = max(mhh$value) + 0.1, vjust = 0.5, textsize = textsize) +
       
-      # Radboud W2T1 W2T2
-      # geom_point(data = radboud.2, aes(x = time, y = mean), color = radboud.2$color) +
-      # geom_line(data = radboud.2, aes(x = time, y = mean, group = condition), color = radboud.2$color, lty = 2) +
-      # geom_errorbar(data = radboud.2, aes(x = time, y = mean, ymax = mean + se, ymin = mean - se), position = pd, color = radboud.2$color) +
-      
       # Manual line to connect Radboud 1 and radboud 2
       # geom_line(data = x, aes(x = time, y = mean, group = condition), color = x$color, lty = 2) +
       theme_classic() +
@@ -120,16 +107,16 @@ make.plot <- function(prots, ncol = 1, nrow = 1, textsize = 4, vjust = 0) {
       facet_wrap(~ variable, scales = 'free_y')
     
     if (pval < 0.05) {
+      print('Adding significance')
       pl <- pl + geom_signif(data = mhh, aes(x = condition, y = value), 
                              tip_length = 0, 
                              annotations = mapsignif(pval), 
-                             xmin = 'healthy', 
-                             xmax = 'postcovid', 
+                             xmin = 'Healthy', 
+                             xmax = 'Convalescent', 
                              y = max(mhh$value) + 0.5, 
                              vjust = vjust, 
                              textsize = textsize)
     }
-    
     plot_list[[prot]] <- pl
     
     
