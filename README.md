@@ -12,7 +12,7 @@ Contains all data and scripts used in the targeted proteomic post-COVID-19 study
 
 
 #### Study overview:
-![study overview](https://github.com/MZoodsma/Postcovid-targeted-proteomics/blob/7d3ec32068e88892dc3684c6df55e0057f98d1bc/inst/images/study%20overview.png)
+![study overview](https://github.com/MZoodsma/Postcovid-targeted-proteomics/blob/143801247d0f5bc96ed162a31be1e239dd39c702/inst/images/study%20overview.png)
 
 #### Contact
 Author: Martijn Zoodsma, Helmholtz Centre for Infection Research.  
