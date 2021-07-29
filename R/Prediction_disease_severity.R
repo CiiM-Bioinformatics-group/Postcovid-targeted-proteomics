@@ -11,7 +11,7 @@ library(magrittr)
 # Training: Breda cohort
 # Test: Radboud cohort
 
-load('data/data.RData')
+load('data.RData')
 
 annot.radboud %<>% select(age, gender, condition, time, cohort)
 annot.breda %<>% select(age, gender, condition, timepoint, cohort)
@@ -72,12 +72,9 @@ for (i in 1:n) {
                                        .lambda = seq(0,1,by=0.01)),
                   trControl = trainControl(method="repeatedcv",
                                            number=5,
-                                           repeats=5,
+                                           repeats=30,
                                            classProbs = T,
                                            summaryFunction=twoClassSummary))
-  
-  # Accuracy and training perf
-  print(paste0('Training performance: ', getTrainPerf(netFit)))
   
   predict_validation <- predict(object = netFit, newdata = validation_x, type = 'raw')
   conf <- confusionMatrix(data = predict_validation, reference = validation_y)
@@ -93,9 +90,9 @@ for (i in 1:n) {
   coefficients <- cbind(coefficients, coefficients_condition)
 }
 
-# saveRDS(object = netFit, file = 'output/prediction_model_condition.RDS')
-# write.csv(res, file = 'output/pred_condition_res.csv')
-# write.csv(coefficients, file = 'output/pred_condition_coefficients.csv')
+saveRDS(object = netFit, file = 'prediction_model_condition.RDS')
+write.csv(res, file = 'pred_condition_res.csv')
+write.csv(coefficients, file = 'pred_condition_coefficients.csv')
 
 # In both training and validation phenotypes:
 # ICU = 1, non-ICU = 2. We set 2 as the reference level since this is also what we do in the Limma DE
@@ -119,14 +116,50 @@ pred.raw <- predict(netFit, validation_x, type = 'raw')
 conf <- confusionMatrix(data = pred.raw, reference = validation_y)
 conf
 validation_conf <- conf$table %>% as.data.frame()
-auc(roc.data) #0.87
+print('AUC: ')
+print(auc(roc.data)) #0.87
+ci.auc(roc.data) # 0.79 - 0.95
 
-pdf('output/roc_prediction_ICU_nonICU.pdf', width = 3, height = 3)
 roc <- ggroc(roc.data) +
   theme_classic() +
   geom_abline(intercept = 1, slope = 1, lty = 2) +
   labs(x = '1 - Specificity', y = 'Sensitity') +
-  annotate("text", x=0.4, y=0.30, label="AUC: 0.87", color = "black", size = 3)
+  annotate("text", x=0.6, y=0.750, label="AUC: 0.87\n[0.79 - 0.95]", color = "black", size = 3)
 
-roc
+# Coefficients plot
+df <- read.csv('pred_condition_coefficients.csv', header=T, row.names=1)
+df <- df[which(!rownames(df) == 'Intercept'), ]
+
+df2 <- data.frame(
+  'mean' = apply(df, 1, mean), 
+  'sd' = apply(df, 1, sd),
+  'abs_sd' = apply(abs(df), 1, sd),
+  'abs_mean' = abs(apply(df, 1, mean))
+)
+
+df <- cbind(df, df2)
+
+df <- df %>% 
+  arrange(desc(abs_mean)) %>% 
+  select(mean, sd, abs_mean) %>% 
+  head(10)
+
+rownames(df) <- conv %>% 
+  filter(OlinkID %in% rownames(df)) %>% 
+  arrange(match(OlinkID, rownames(df))) %>% 
+  pull(Assay)
+
+df$protein <- rownames(df)
+df %<>% arrange(abs_mean) 
+df$protein <- factor(df$protein, levels = unique(df$protein))
+
+coefs <- ggplot(data = df) +
+  geom_point(aes(x = abs_mean, y = protein), size= 2) +
+  geom_errorbar(aes(x = abs_mean, y = protein, xmax = abs_mean-sd, xmin=abs_mean + sd, width = 0.2)) +
+  theme_classic() +
+  labs(x = 'Absolute coefficient') +
+  xlim(c(0, 50))
+
+pdf('condition_prediction.pdf', width = 6, height = 3)
+ggarrange(roc, coefs, align = 'hv')
 dev.off()
