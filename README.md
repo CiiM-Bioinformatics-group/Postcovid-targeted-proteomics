@@ -1,5 +1,5 @@
 # Postcovid targeted proteomics
-Contains all scripts used in the targeted proteomic post-COVID-19 study (doi: ). In short, we performed targeted proteomics analysis using the Olink platform and systematically investigated circulating protein levels from 627 COVID-19 hospitalized patients, 186 COVID-19 convalescent individuals and 61 healthy individuals separated into 3 independent cohorts.
+Contains all scripts used in the targeted proteomic post-COVID-19 study (doi: ). In short, we performed targeted proteomics analysis using the Olink platform and systematically investigated circulating protein levels from 350 COVID-19 hospitalized patients, 186 COVID-19 convalescent individuals and 61 healthy individuals separated into 3 independent cohorts.
 
 
 #### Directories:
