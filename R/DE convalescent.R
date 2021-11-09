@@ -134,7 +134,7 @@ show = 25
 
 pdf('output/volcano_DE_radboud.pdf', width = 15, height = 4, onefile = F)
 
-ggarrange(
+pl <- ggarrange(
   ggplot() +
     geom_point(data = ICU_vs_healthy %>% filter(significance == F) , aes(x = logFC, y = -log10(adj.P.Val)), color = 'lightgray', show.legend = F) +
     geom_point(data = ICU_vs_healthy %>% filter(significance == T) , aes(x = logFC, y = -log10(adj.P.Val), color = direction)) +
@@ -173,6 +173,12 @@ ggarrange(
   
   ncol = 3, nrow = 1, common.legend = T, legend =  'none'
 )
+pl
+dev.off()
+
+# High def for poster
+jpeg(filename = 'volcanos_conv_highres.jpeg', width = 15, height = 4, units = 'in', res = 1200)
+pl
 dev.off()
 
 

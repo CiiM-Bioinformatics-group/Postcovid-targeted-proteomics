@@ -106,7 +106,7 @@ DE_Radboud <- ggplot() +
   geom_vline(xintercept = 0.0, lty = 'dotted') +
   xlim(c(-1.5, 2)) +
   ylim(c(0, 15)) +
-  ggrepel::geom_label_repel(data = head(x = ICU_vs_nonICU_radboud %>% arrange(adj.P.Val), 8), aes(label = Assay, x = logFC, y = -log10(adj.P.Val)), box.padding = 0.5, show.legend = F) 
+  ggrepel::geom_label_repel(data = ICU_vs_nonICU_radboud %>% filter(Olink.panel == 'Olink INFLAMMATION') %>% arrange(adj.P.Val) %>% head(8), aes(label = Assay, x = logFC, y = -log10(adj.P.Val)), box.padding = 0.5, show.legend = F) 
 
 pdf('output/DE_ICU_vs_nonICU_Breda_Nijmegen.pdf', width = 8, height = 4, onefile = F)
 ggarrange(DE_Breda, DE_Radboud, nrow = 1, ncol=2, common.legend = T, legend = 'none') 
