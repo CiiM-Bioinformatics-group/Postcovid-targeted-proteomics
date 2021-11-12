@@ -32,52 +32,56 @@ annot.radboud[which(annot.radboud$condition == 'non-ICU'), 'condition'] <- 'nonI
 breda <- breda[which(rownames(breda) %in% rownames(annot.breda)), ]
 radboud <- radboud[which(rownames(radboud) %in% rownames(annot.radboud)), ]
 
-##########
+#########
 # Construct training and validation data
-# We use Breda as training cohort then validate in Radboud cohort
-# Protein NPX values are scaled manually afterwards age and gender are added.
-train_x <- breda %>% as.matrix()
-train_x <- scale(train_x, center = F, scale = T)
-annot.breda %>%
-  select(age, gender) %>%
-  mutate(age = as.numeric(age)) %>%
-  mutate(gender = as.numeric(as.factor(gender))) %>%
-  as.matrix() -> breda_age_gender
-train_x <- cbind(train_x, breda_age_gender)
+# Use Breda as training cohort, validation in Radboud cohort
+# Scale using caret preprocess and use the preprocess model to train the Radboud cohort too
+annot.breda$age <- as.numeric(annot.breda$age)
+annot.breda$gender <- as.factor(annot.breda$gender)
+
+train_x <- cbind(breda, 
+                 annot.breda %>% select(age,gender))
+
+prep_model <- preProcess(x = train_x) # Gender is ignored in the model since it is a 2-level factor.
+train_x <- predict(prep_model, newdata = train_x)
 train_y <- factor(annot.breda$condition, levels = c('ICU', 'nonICU'))
 
-validation_x <- radboud %>% as.matrix()
-validation_x <- scale(validation_x, center = F, scale = T)
-annot.radboud %>%
-  select(age, gender) %>%
-  mutate(age = as.numeric(age)) %>%
-  mutate(gender = as.numeric(as.factor(gender))) %>%
-  as.matrix() -> radboud_age_gender
-validation_x <- cbind(validation_x, radboud_age_gender)
+
+annot.radboud$age <- as.numeric(annot.radboud$age)
+annot.radboud$gender <- as.factor(annot.radboud$gender)
+validation_x <- cbind(radboud, 
+                      annot.radboud %>% select(age, gender))
+
+stopifnot(all(colnames(train_x) == colnames(validation_x)))
+validation_x <- predict(prep_model, newdata = validation_x)
 validation_y <- factor(annot.radboud$condition, levels = c('ICU', 'nonICU'))
 
+train_x$gender <- as.numeric(train_x$gender)
+validation_x$gender <- as.numeric(validation_x$gender)
+
+
 ## Make the model
-n <- 100
+n <- 1
 res <- matrix(NA, nrow = n, ncol = 1)
 coefficients <- data.frame(row.names = c('Intercept', colnames(train_x)))
 
 for (i in 1:n) {
-  netFit <- train(x = train_x,
-                  y = train_y,
-                  method = "glmnet",
-                  metric = "ROC",
-                  tuneGrid=expand.grid(.alpha = seq(0.1,0.9, by=0.1),
-                                       .lambda = seq(0,1,by=0.01)),
-                  trControl = trainControl(method="repeatedcv",
-                                           number=5,
-                                           repeats=30,
-                                           classProbs = T,
-                                           summaryFunction=twoClassSummary))
-  
-  # Accuracy and training perf
-  print(paste0('Training performance: ', getTrainPerf(netFit)))
+  print(i)
+  train(x = train_x, 
+        y = train_y, 
+        method = 'glmnet', 
+        metric = 'ROC', 
+        trControl = trainControl(classProbs = T, 
+                                 summaryFunction = twoClassSummary, 
+                                 method = 'repeatedcv', 
+                                 number = 5, 
+                                 repeats = 10), 
+        tuneGrid=expand.grid(.alpha = seq(0.1,0.9, by=0.1),
+                             .lambda = seq(0,1,by=0.01))
+  ) -> netFit
   
   predict_validation <- predict(object = netFit, newdata = validation_x, type = 'raw')
+  
   conf <- confusionMatrix(data = predict_validation, reference = validation_y)
   acc <- conf$overall['Accuracy']
   res[i, 1] <- acc
@@ -125,14 +129,15 @@ roc <- ggroc(roc.data) +
   theme_classic() +
   geom_abline(intercept = 1, slope = 1, lty = 2) +
   labs(x = '1 - Specificity', y = 'Sensitity') +
-  annotate("text", x=0.4, y=0.30, label="AUC: 0.87", color = "black", size = 3)
+  annotate("text", x=0.65, y=0.750, label="AUC: 0.87\n[0.79 - 0.95]", color = "black", size = 3)
 
 roc
 dev.off()
 
 
 # Coefficients plot
-df <- coefficients
+df <- read.csv('/vol/projects/mzoodsma/postcovid/new_rebuttal/dis_sev/pred_condition_coefficients.csv', header=T, row.names=1)
+# df <- coefficients
 df <- df[which(!rownames(df) == 'Intercept'), ]
 
 df2 <- data.frame(
@@ -149,20 +154,25 @@ df <- df %>%
   select(mean, sd, abs_mean) %>%
   head(10)
 
-rownames(df) <- conv %>%
-  filter(OlinkID %in% rownames(df)) %>%
-  arrange(match(OlinkID, rownames(df))) %>%
-  pull(Assay)
+conv[which(conv$OlinkID %in% rownames(df)), ]
+df
+rownames(df) <- c('HGF', 'TGF-alpha', 'Age', 'CXCL9', 'TWEAK', 'CXCL11', 'CST5', 'uPA', 'TNFRSF9', 'MMP-10')
+
 
 df$protein <- rownames(df)
 df %<>% arrange(abs_mean)
 df$protein <- factor(df$protein, levels = unique(df$protein))
 
-pdf('coefficients_pred_disease.pdf', width =3, heigth = 3)
-ggplot(data = df) +
+pdf('/vol/projects/mzoodsma/postcovid/new_rebuttal/output/coefficients_pred_disease.pdf', width =3, height = 3)
+coefs <- ggplot(data = df) +
   geom_point(aes(x = abs_mean, y = protein), size= 2) +
   geom_errorbar(aes(x = abs_mean, y = protein, xmax = abs_mean-sd, xmin=abs_mean + sd, width = 0.2)) +
   theme_classic() +
   labs(x = 'Absolute coefficient') +
-  xlim(c(0, NA))
+  xlim(c(-.2, NA))
+coefs
+dev.off()
+
+pdf('/vol/projects/mzoodsma/postcovid/new_rebuttal/output/disease_pred_combplot.pdf', width = 6, height = 3)
+ggpubr::ggarrange(roc, coefs, align = 'h')
 dev.off()

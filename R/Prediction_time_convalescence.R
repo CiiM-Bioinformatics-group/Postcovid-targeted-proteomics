@@ -8,47 +8,57 @@ library(dplyr)
 library(ggpubr)
 library(magrittr)
 library(doMC)
+
 registerDoMC(cores = 25)
-# Prediction for the time of convalescence within MHH postcovid samples
+
+# Prediction for the time of convalescence within MHH cohort: postcovid samples
+setwd('/vol/projects/mzoodsma/postcovid/new_rebuttal/conv/')
 load('data.RData')
 
-mhh <- na.omit(mhh)
+# we only need the convalescent samples for here. Filter
+# We also dont have the time of conv for 11 samples. Take these out
 annot.mhh %<>% filter(condition == 'postcovid') %>%
   select(time.convalescence, age, gender) %>%
   mutate(age = as.numeric(age)) %>%
-  mutate(gender = as.numeric(as.factor(gender)))
-annot.mhh %<>% na.omit()
+  mutate(gender = as.factor(gender))
+annot.mhh <- na.omit(annot.mhh)
+sum(is.na(annot.mhh))
 
 mhh <- mhh[which(rownames(mhh) %in% rownames(annot.mhh)), ]
-annot.mhh <- annot.mhh[which(rownames(annot.mhh) %in% rownames(mhh)), ]
+stopifnot(all(rownames(mhh) == rownames(annot.mhh)))
 
-all(rownames(mhh) == rownames(annot.mhh))
+sum(is.na(mhh)) #525 missing values. Knn imputation using caret preProcess
+data_total <- cbind(mhh, 
+                    annot.mhh %>% select(age, gender))
+# pred_model <- preProcess(x = data_total, method = 'knnImpute')
 
-n <- 1
+# data_total <- predict(pred_model, newdata = data_total)
+phenotypes <- annot.mhh$time.convalescence
+
+n <- 100
 res <- matrix(NA, nrow = n, ncol = 2)
 colnames(res) <- c('cor', 'pval')
 coefficients <- data.frame(row.names = c('Intercept', colnames(mhh), 'age', 'gender'))
 
 for(i in 1:n) {
-  splitSample <- createDataPartition(annot.mhh$time.convalescence, p = 0.7, list = FALSE)
+  splitSample <- createDataPartition(phenotypes, p = 0.7, list = FALSE)
   
   # Train data
-  train_x <- mhh[splitSample, ]
-  train_x <- scale(train_x, center=F, scale=T)
-  stopifnot(all(rownames(train_x) == rownames(annot.mhh[splitSample, ])))
-  train_x <- cbind(train_x,
-                   as.matrix(annot.mhh[splitSample, c('age', 'gender')]))
-  
-  train_y <- annot.mhh[splitSample, ] %>% pull(time.convalescence)
+  train_x <- data_total[splitSample, ]
+  train_y <- phenotypes[splitSample]
   
   # Validation data
-  validation_x <- mhh[-splitSample, ]
-  validation_x <- scale(validation_x, center=F, scale = T)
-  stopifnot(all(rownames(validation_x) == rownames(annot.mhh[-splitSample, ])))
-  validation_x <- cbind(validation_x,
-                        as.matrix(annot.mhh[-splitSample, c('age', 'gender')]))
+  validation_x <- data_total[splitSample, ]
+  validation_y <- phenotypes[splitSample]
   
-  validation_y <- annot.mhh[-splitSample, ] %>% pull(time.convalescence)
+  # Preprocessing
+  prep_model <- preProcess(train_x, method = 'knnImpute')
+  
+  train_x <- predict(prep_model, train_x)
+  validation_x <- predict(prep_model, validation_x)
+  
+  train_x$gender <- as.numeric(train_x$gender)
+  validation_x$gender <- as.numeric(validation_x$gender)
   
   netFit <- train(x = train_x,
                   y = train_y,
@@ -75,17 +85,23 @@ for(i in 1:n) {
   print('done')
 }
 
-saveRDS(object = netFit, file = 'prediction_model_convalescence_time.RDS')
-write.csv(res, file = 'pred_convalescence_res.csv')
-write.csv(coefficients, file = 'pred_convalescence_coefficients.csv')
+#saveRDS(object = netFit, file = 'prediction_model_convalescence_time.RDS')
+#write.csv(res, file = 'pred_convalescence_res.csv')
+#write.csv(coefficients, file = 'pred_convalescence_coefficients.csv')
 
 res <- data.frame(res)
 
 # Correlation plot for the last run
+pdf('/vol/projects/mzoodsma/postcovid/new_rebuttal/output/correlation_conv.pdf', width = 3, height = 3)
 corplot <- ggplot() +
   theme_classic() +
   geom_point(aes(x = validation_y, y = prediction_y)) +
-  labs(x = 'Reported convalescence time', y = 'Predicted convalescence time')
+  labs(x = 'Reported convalescence time', y = 'Predicted convalescence time') +
+  annotate(x = 50, y = 30, geom = 'text', label= paste0("Corr: ", round(cor(validation_y, prediction_y), 3)))
+
+corplot +
+  theme(aspect.ratio = 1)
+dev.off()
 
 cors <- ggplot(data = res) +
   geom_boxplot(aes(y = cor, x = as.factor('test')), width = 0.5) +
@@ -94,7 +110,8 @@ cors <- ggplot(data = res) +
   labs(y = 'Correlation reported / predicted') +
   theme(axis.ticks.x = element_blank(),
         axis.text.x = element_blank(),
-        axis.title.x = element_blank())
+        axis.title.x = element_blank()) +
+  ylim(c(0.5, 1))
 
 # Coefficients plot
 df <- coefficients
@@ -129,6 +146,6 @@ coefs <- ggplot(data = df) +
   theme_classic() +
   labs(x = 'Absolute coefficient')
 
-pdf('all.pdf', width = 10, height = 3)
+pdf('/vol/projects/mzoodsma/postcovid/new_rebuttal/output/all_conv.pdf', width = 8, height = 3)
 ggarrange(corplot, cors, coefs, align = 'h', nrow = 1, widths = c(2, 1, 2))
 dev.off()
