@@ -5,8 +5,8 @@ Contains all scripts used in the targeted proteomic post-COVID-19 study (doi: ).
 #### Directories:
 <ul>
 <li><strong>R</strong>: R scripts used for analysis and to generate all figures</li>
-<li><strong>input prediction models</strong>: Example CSV files to be used as input for the prediction models described in the paper</li>
-
+<li><strong>Raw data</strong>: Raw targeted proteomics data as obtained from Olink, along with phenotypic descriptions of patients</li>
+<li><strong>Data: </strong>Processed data, integrated to be comparable to the MHH cohort. Integration of different cohorts was performed according to instructions from Olink.</li>
 </ul>
 
 
