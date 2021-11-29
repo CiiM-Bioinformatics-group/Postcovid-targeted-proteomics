@@ -48,8 +48,8 @@ for(i in 1:n) {
   train_y <- phenotypes[splitSample]
   
   # Validation data
-  validation_x <- data_total[splitSample, ]
-  validation_y <- phenotypes[splitSample]
+  validation_x <- data_total[-splitSample, ]
+  validation_y <- phenotypes[-splitSample]
   
   # Preprocessing
   prep_model <- preProcess(train_x, method = 'knnImpute')
